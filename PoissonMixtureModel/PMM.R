@@ -4,6 +4,7 @@
 # library ------------------------------
 library(tidyverse)
 library(colorspace)
+library(patchwork)
 
 
 # functions ------------------------------
@@ -45,13 +46,14 @@ str_c("./PMM", method, N, K, gen_seed,
 demo_data <- read_csv(file = "data.csv", col_names = TRUE, col_types = "ii")
 
 # plot
-make_plot(
-  method = method,
-  K = K,
-  s = demo_data$s, 
-  X = demo_data$X, 
-  bins = 30
-)
+demo_data_plot <- 
+  make_plot(
+    method = method,
+    K = K,
+    s = demo_data$s, 
+    X = demo_data$X, 
+    bins = 30
+  )
 
 
 # Gibbs Sampling ------------------------------
@@ -97,19 +99,20 @@ GS$lambda <-
   mutate(k = recode(k + 1, !!!map_s))
 
 # pull s samples
- GS$s <- 
-  GS$samples %>% 
-  dplyr::select(iteration, starts_with("s.")) %>% 
-  pivot_longer(cols = starts_with("s."), 
-               names_to = "n", names_pattern = "s.([0-9]+)", names_transform = list(n = as.integer),
-               values_to = "s", values_transform = list(s = as.integer)) %>% 
-  mutate(s = recode(s, !!!map_s),
-         X = demo_data$X[n+1])
+GS$s <- 
+GS$samples %>% 
+dplyr::select(iteration, starts_with("s.")) %>% 
+pivot_longer(cols = starts_with("s."), 
+             names_to = "n", names_pattern = "s.([0-9]+)", names_transform = list(n = as.integer),
+             values_to = "s", values_transform = list(s = as.integer)) %>% 
+mutate(s = recode(s, !!!map_s),
+       X = demo_data$X[n+1])
 
 # plot
- tmp_df <- 
-   GS$s %>% 
-   filter(iteration >= MAXITER / 2)
+tmp_df <- 
+  GS$s %>% 
+  filter(iteration >= MAXITER / 2)
+GS_plot <- 
  make_plot(
   method = method, 
   K = K,
@@ -117,6 +120,14 @@ GS$lambda <-
   X = tmp_df$X,
   bins = 30
 )
+
+(
+  (demo_data_plot / GS_plot) +
+    plot_layout(guides = "collect") &
+    theme(aspect.ratio = 0.6,
+          legend.position = "bottom")
+) %>% 
+  ggsave(filename = "GS_result.png", width = 100, height = 150, units = "mm")
 
 
 # Variational Inference ------------------------------
@@ -175,13 +186,22 @@ VI$s <-
 tmp_df <- 
   VI$s %>% 
   filter(iteration >= MAXITER / 2)
-make_plot(
-  method = method, 
-  K = K,
-  s = tmp_df$s, 
-  X = tmp_df$X, 
-  bins = 30
-)
+VI_plot <- 
+  make_plot(
+    method = method, 
+    K = K,
+    s = tmp_df$s, 
+    X = tmp_df$X, 
+    bins = 30
+  )
+
+(
+  (demo_data_plot / VI_plot) +
+    plot_layout(guides = "collect") &
+    theme(aspect.ratio = 0.6,
+          legend.position = "bottom")
+) %>% 
+  ggsave(filename = "VI_result.png", width = 100, height = 150, units = "mm")
 
 
 # Collapsed Gibbs Sampling ------------------------------
@@ -231,13 +251,22 @@ CGS$s <-
 tmp_df <- 
   CGS$s %>% 
   filter(iteration >= MAXITER / 2)
-make_plot(
-  method = method, 
-  K = K,
-  s = tmp_df$s, 
-  X = tmp_df$X, 
-  bins = 30
-)
+CGS_plot <- 
+  make_plot(
+    method = method, 
+    K = K,
+    s = tmp_df$s, 
+    X = tmp_df$X, 
+    bins = 30
+  )
+
+(
+  (demo_data_plot / CGS_plot) +
+    plot_layout(guides = "collect") &
+    theme(aspect.ratio = 0.6,
+          legend.position = "bottom")
+) %>% 
+  ggsave(filename = "CGS_result.png", width = 100, height = 150, units = "mm")
 
 
 # まとめ ------------------------------
@@ -259,13 +288,16 @@ str_c("./PMM", method, N, K, gen_seed,
 demo_data <- read_csv(file = "data.csv", col_names = TRUE, col_types = "ii")
 
 # plot
-make_plot(
-  method = method,
-  K = K,
-  s = demo_data$s, 
-  X = demo_data$X, 
-  bins = 30
-)
+data_plot_comparison <- 
+  make_plot(
+    method = method,
+    K = K,
+    s = demo_data$s, 
+    X = demo_data$X, 
+    bins = 30
+  )
+
+ggsave(filename = "comparison_data.png", plot = data_plot_comparison, width = 160, height = 100, units = "mm")
 
 # set col_types
 col_types_list <- list(GS = NULL, VI = NULL, CGS = NULL)
@@ -309,7 +341,8 @@ for (method in names(sim_res)) {
     bind_rows(sim_res[[method]], .id = "rep")
 }
 
-sim_res %>% 
+plot_comparison <- 
+  sim_res %>% 
   bind_rows(.id = "method") %>% 
   group_by(method, iteration) %>% 
   summarise(ELBO = mean(ELBO), .groups = "drop") %>% 
@@ -318,3 +351,5 @@ sim_res %>%
   scale_x_continuous(trans = "log10") +
   theme(aspect.ratio = 0.6,
         legend.position = "bottom")
+
+ggsave(filename = "comparison_result.png", plot = plot_comparison, width = 160, height = 100, units = "mm")
