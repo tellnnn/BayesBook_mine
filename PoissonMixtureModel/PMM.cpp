@@ -1,12 +1,10 @@
 #include <stan/math.hpp>
-#include <Eigen/Dense>
 #include <random>
+#include <string>
+#include <vector>
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <string>
-#include <vector>
-#include <stdio.h>
 
 using namespace stan;
 using namespace math;
