@@ -55,6 +55,8 @@ demo_data_plot <-
     bins = 30
   )
 
+ggsave(filename = "demo_data.png", plot = demo_data_plot, width = 100, height = 75, units = "mm")
+
 
 # Gibbs Sampling ------------------------------
 method <- "GS"
