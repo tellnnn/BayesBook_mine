@@ -23,10 +23,8 @@ void generate_data(int N, int K, VectorXd lambda, VectorXd pi, int seed) {
     std::default_random_engine engine(seed);
 
     // set variables
-    VectorXi s; // the latent variable
-    VectorXi X; // the data
-    s = VectorXi::Zero(N); // initialize with zeros
-    X = VectorXi::Zero(N); // initialize with zeros
+    int s; // the latent variable
+    int X; // the data
     
     // set the output file
     std::ofstream data("data.csv");
@@ -34,10 +32,10 @@ void generate_data(int N, int K, VectorXd lambda, VectorXd pi, int seed) {
     data << "s,X" << std::endl;
     for (int n = 0; n < N; n++) {
         // sample s and X
-        s(n) = categorical_rng(pi,engine);
-        X(n) = poisson_rng(lambda(s(n)-1),engine);
+        s = categorical_rng(pi,engine);
+        X = poisson_rng(lambda(s-1),engine);
         // output s and X
-        data << s(n) << "," << X(n) << std::endl;
+        data << s << "," << X << std::endl;
     }
 }
 
