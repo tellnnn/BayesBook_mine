@@ -1,10 +1,10 @@
 #include <stan/math.hpp>
 #include <Eigen/Dense>
+#include <random>
 #include <iostream>
 #include <fstream>
-#include <random>
-#include <string>
 #include <sstream>
+#include <string>
 #include <vector>
 #include <stdio.h>
 
