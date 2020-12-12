@@ -217,7 +217,7 @@ VI$pi <-
 # pull s samples
 VI$s <- 
   VI$samples %>% 
-  dplyr::select(iteration, starts_with("s.")) %>% 
+  select(iteration, starts_with("s.")) %>% 
   pivot_longer(cols = starts_with("s."), 
                names_to = "n", names_pattern = "s.([0-9]+)", names_transform = list(n = as.integer),
                values_to = "s", values_transform = list(s = as.integer)) %>% 
