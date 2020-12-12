@@ -223,6 +223,7 @@ void VariationalInference(int N, int K, VectorXi X, int MAXITER, int seed) {
     VectorXd pi; // the mixing parameter
     VectorXd s; // the latent variable
     MatrixXd expt_S(N,K); // E[S]
+    MatrixXd ln_expt_S(N,K); // ln E[S]
     double ELBO; // ELBO
     
     // set initial values
@@ -233,15 +234,29 @@ void VariationalInference(int N, int K, VectorXi X, int MAXITER, int seed) {
     pi = dirichlet_rng(alpha,engine);
     s = VectorXd::Zero(N,1); // initialize s with zeros
     expt_S = MatrixXd::Zero(N,K); // initialize expt_S with zeros
+    ln_expt_S = MatrixXd::Zero(N,K); // initialize ln_expt_S with zeros
     for (int n = 0; n < N; n++) {
         s(n) = categorical_rng(pi,engine);
         expt_S(n,s(n)-1) = 1;
     }
+    a_hat = a + expt_S.transpose() * X;
+    b_hat = b + expt_S.colwise().sum().transpose();
+    alpha_hat = alpha + expt_S.colwise().sum().transpose();
     
     // sampling
     for (int i = 1; i <= MAXITER; i++) {
+        // sample s
+        VectorXd expt_lambda = a_hat.array() / b_hat.array();
+        VectorXd expt_ln_lambda = stan::math::digamma(a_hat.array()) - stan::math::log(b_hat.array());
+        VectorXd expt_ln_pi = stan::math::digamma(alpha_hat.array()) - stan::math::digamma(stan::math::sum(alpha_hat.array()));
+        for (int n = 0; n < N; n++) {
+            ln_expt_S.row(n) = X(n) * expt_ln_lambda - expt_lambda + expt_ln_pi;
+            ln_expt_S.row(n) -= rep_row_vector(log_sum_exp(ln_expt_S.row(n)), K);
+            expt_S.row(n) = exp(ln_expt_S.row(n));
+            s(n) = categorical_rng(expt_S.row(n), engine);
+        }
+        
         // sample lambda
-        expt_S = exp(expt_S);
         a_hat = a + expt_S.transpose() * X;
         b_hat = b + expt_S.colwise().sum().transpose();
         lambda = to_vector(gamma_rng(a_hat,b_hat,engine));
@@ -249,17 +264,6 @@ void VariationalInference(int N, int K, VectorXi X, int MAXITER, int seed) {
         // sample pi
         alpha_hat = alpha + expt_S.colwise().sum().transpose();
         pi = dirichlet_rng(alpha_hat,engine);
-        
-        // sample s
-        s = VectorXd::Zero(N,1); // initialize s with zeros
-        VectorXd expt_lambda = a_hat.array() / b_hat.array();
-        VectorXd expt_ln_lambda = stan::math::digamma(a_hat.array()) - stan::math::log(b_hat.array());
-        VectorXd expt_ln_pi = stan::math::digamma(alpha_hat.array()) - stan::math::digamma(stan::math::sum(alpha_hat.array()));
-        for (int n = 0; n < N; n++) {
-            expt_S.row(n) = X(n) * expt_ln_lambda - expt_lambda + expt_ln_pi;
-            expt_S.row(n) -= rep_row_vector(log_sum_exp(expt_S.row(n)), K);
-            s(n) = categorical_rng(exp(expt_S.row(n)), engine);
-        }
 
         // calc ELBO
         ELBO = calc_ELBO(N, K, X, a, b, alpha, a_hat, b_hat, alpha_hat);
