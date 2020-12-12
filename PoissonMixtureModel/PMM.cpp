@@ -229,12 +229,10 @@ void VariationalInference(int N, int K, VectorXi X, int MAXITER, int seed) {
     // set initial values
     a = VectorXd::Constant(K,1,uniform_rng(0.1,2.0,engine));
     b = VectorXd::Constant(K,1,uniform_rng(0.005,0.05,engine));
-    lambda = to_vector(gamma_rng(a,b,engine));
     alpha = VectorXd::Constant(K,1,uniform_rng(10.0,200.0,engine));
     pi = dirichlet_rng(alpha,engine);
     s = VectorXd::Zero(N,1); // initialize s with zeros
     expt_S = MatrixXd::Zero(N,K); // initialize expt_S with zeros
-    ln_expt_S = MatrixXd::Zero(N,K); // initialize ln_expt_S with zeros
     for (int n = 0; n < N; n++) {
         s(n) = categorical_rng(pi,engine);
         expt_S(n,s(n)-1) = 1;
