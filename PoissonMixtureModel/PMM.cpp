@@ -322,18 +322,15 @@ void CollapsedGibbsSampling(int N, int K, VectorXi X, int MAXITER, int seed) {
         s(n) = categorical_rng(rep_vector(1.0/K,K),engine);
         S(n,s(n)-1) = 1;
     }
+    // calc a_hat, b_hat, and alpha_hat
+    sX_csum = (S.array() * X.rowwise().replicate(K).array()).matrix().colwise().sum();
+    S_csum = S.colwise().sum();
+    a_hat = a + sX_csum;
+    b_hat = b + S_csum;
+    alpha_hat = alpha + S_csum;
     
     // sampling
     for (int i = 1; i <= MAXITER; i++) {
-        // calc a_hat, b_hat, and alpha_hat
-        sX_csum = (S.array() * X.rowwise().replicate(K).array()).matrix().colwise().sum();
-        S_csum = S.colwise().sum();
-        a_hat = a + sX_csum;
-        b_hat = b + S_csum;
-        alpha_hat = alpha + S_csum;
-
-        S = MatrixXi::Zero(N,K); // initialize S with zeros
-
         for (int n = 0; n < N; n++) {
             // remove components related to x_{n}
             a_hat -= S.row(n) * X(n);
@@ -347,6 +344,7 @@ void CollapsedGibbsSampling(int N, int K, VectorXi X, int MAXITER, int seed) {
             }
 
             // sample s
+            S = MatrixXi::Zero(N,K); // initialize S with zeros
             ln_lkh -= rep_vector(log_sum_exp(ln_lkh),K);
             s(n) = categorical_rng(stan::math::exp(ln_lkh),engine);
             S(n,s(n)-1) = 1;
