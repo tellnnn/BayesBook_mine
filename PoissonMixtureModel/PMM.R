@@ -102,13 +102,13 @@ GS$lambda <-
 
 # pull s samples
 GS$s <- 
-GS$samples %>% 
-dplyr::select(iteration, starts_with("s.")) %>% 
-pivot_longer(cols = starts_with("s."), 
-             names_to = "n", names_pattern = "s.([0-9]+)", names_transform = list(n = as.integer),
-             values_to = "s", values_transform = list(s = as.integer)) %>% 
-mutate(s = recode(s, !!!map_s),
-       X = demo_data$X[n+1])
+  GS$samples %>% 
+  dplyr::select(iteration, starts_with("s.")) %>% 
+  pivot_longer(cols = starts_with("s."), 
+               names_to = "n", names_pattern = "s.([0-9]+)", names_transform = list(n = as.integer),
+               values_to = "s", values_transform = list(s = as.integer)) %>% 
+  mutate(s = recode(s, !!!map_s),
+         X = demo_data$X[n+1])
 
 # plot
 tmp_df <- 
