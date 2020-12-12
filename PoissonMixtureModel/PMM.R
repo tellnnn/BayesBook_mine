@@ -5,6 +5,7 @@
 library(tidyverse)
 library(colorspace)
 library(patchwork)
+library(ggdist)
 
 
 # functions ------------------------------
@@ -130,6 +131,12 @@ GS_plot <-
           legend.position = "bottom")
 ) %>% 
   ggsave(filename = "GS_result.png", width = 100, height = 150, units = "mm")
+
+# Estimated lambda
+GS$lambda %>% 
+  filter(iteration >= MAXITER / 2) %>%
+  group_by(k) %>% 
+  mean_qi(lambda)
 
 
 # Variational Inference ------------------------------
