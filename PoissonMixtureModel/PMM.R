@@ -92,7 +92,7 @@ names(map_s) <- sorted_lambda$ix
 # pull lambda samples
 GS$lambda <- 
   GS$samples %>% 
-  dplyr::select(iteration, starts_with("lambda.")) %>% 
+  select(iteration, starts_with("lambda.")) %>% 
   pivot_longer(cols = starts_with("lambda."),
                names_to = "k", 
                names_pattern = "lambda.([0-9]+)", 
@@ -101,15 +101,42 @@ GS$lambda <-
                values_transform = list(lambda = as.double)) %>% 
   mutate(k = recode(k + 1, !!!map_s))
 
+# pull pi samples
+GS$pi <- 
+  GS$samples %>% 
+  select(iteration, starts_with("pi.")) %>% 
+  pivot_longer(cols = starts_with("pi"),
+               names_to = "k", 
+               names_pattern = "pi.([0-9]+)", 
+               names_transform = list(k = as.integer),
+               values_to = "pi", 
+               values_transform = list(pi = as.double)) %>% 
+  mutate(k = recode(k + 1, !!!map_s))
+
 # pull s samples
 GS$s <- 
   GS$samples %>% 
-  dplyr::select(iteration, starts_with("s.")) %>% 
+  select(iteration, starts_with("s.")) %>% 
   pivot_longer(cols = starts_with("s."), 
-               names_to = "n", names_pattern = "s.([0-9]+)", names_transform = list(n = as.integer),
-               values_to = "s", values_transform = list(s = as.integer)) %>% 
+               names_to = "n", 
+               names_pattern = "s.([0-9]+)", 
+               names_transform = list(n = as.integer),
+               values_to = "s", 
+               values_transform = list(s = as.integer)) %>% 
   mutate(s = recode(s, !!!map_s),
          X = demo_data$X[n+1])
+
+# Estimated lambda
+GS$lambda %>% 
+  filter(iteration >= MAXITER / 2) %>%
+  group_by(k) %>% 
+  mean_qi(lambda)
+
+# Estimated pi
+GS$pi %>% 
+  filter(iteration >= MAXITER / 2) %>%
+  group_by(k) %>% 
+  mean_qi(pi)
 
 # plot
 tmp_df <- 
@@ -131,12 +158,6 @@ GS_plot <-
           legend.position = "bottom")
 ) %>% 
   ggsave(filename = "GS_result.png", width = 100, height = 150, units = "mm")
-
-# Estimated lambda
-GS$lambda %>% 
-  filter(iteration >= MAXITER / 2) %>%
-  group_by(k) %>% 
-  mean_qi(lambda)
 
 
 # Variational Inference ------------------------------
@@ -172,13 +193,25 @@ names(map_s) <- sorted_lambda$ix
 # pull lambda samples
 VI$lambda <- 
   VI$samples %>% 
-  dplyr::select(iteration, starts_with("lambda.")) %>% 
+  select(iteration, starts_with("lambda.")) %>% 
   pivot_longer(cols = starts_with("lambda."),
                names_to = "k", 
                names_pattern = "lambda.([0-9]+)", 
                names_transform = list(k = as.integer),
                values_to = "lambda", 
                values_transform = list(lambda = as.double)) %>% 
+  mutate(k = recode(k + 1, !!!map_s))
+
+# pull pi samples
+VI$pi <- 
+  VI$samples %>% 
+  select(iteration, starts_with("pi.")) %>% 
+  pivot_longer(cols = starts_with("pi."),
+               names_to = "k", 
+               names_pattern = "pi.([0-9]+)", 
+               names_transform = list(k = as.integer),
+               values_to = "pi", 
+               values_transform = list(pi = as.double)) %>% 
   mutate(k = recode(k + 1, !!!map_s))
 
 # pull s samples
@@ -190,6 +223,18 @@ VI$s <-
                values_to = "s", values_transform = list(s = as.integer)) %>% 
   mutate(s = recode(s, !!!map_s),
          X = demo_data$X[n+1])
+
+# Estimated lambda
+VI$lambda %>% 
+  filter(iteration >= MAXITER / 2) %>%
+  group_by(k) %>% 
+  mean_qi(lambda)
+
+# Estimated pi
+VI$pi %>% 
+  filter(iteration >= MAXITER / 2) %>%
+  group_by(k) %>% 
+  mean_qi(pi)
 
 # plot
 tmp_df <- 
@@ -235,10 +280,13 @@ CGS$samples <-
 # pull s samples
 CGS$s <- 
   CGS$samples %>% 
-  dplyr::select(iteration, starts_with("s.")) %>% 
+  select(iteration, starts_with("s.")) %>% 
   pivot_longer(cols = starts_with("s."), 
-               names_to = "n", names_pattern = "s.([0-9]+)", names_transform = list(n = as.integer),
-               values_to = "s", values_transform = list(s = as.integer)) %>% 
+               names_to = "n", 
+               names_pattern = "s.([0-9]+)", 
+               names_transform = list(n = as.integer),
+               values_to = "s", 
+               values_transform = list(s = as.integer)) %>% 
   mutate(X = demo_data$X[n+1])
 
 # calculate MLE for lambda and sort them to control the order of clusters
@@ -325,7 +373,7 @@ col_types <- rep(pars_type, pars_dim) %>% str_c(collapse = "")
 col_types_list$CGS <- col_types
 
 # repetitions
-N_rep <- 10
+N_rep <- 5
 N <- 1000
 K <- 8
 MAXITER <- 1e+4
@@ -333,7 +381,7 @@ MAXITER <- 1e+4
 sim_res <- list(GS = list(), VI = list(), CGS = list())
 for (method in names(sim_res)) {
   for (i in 1:N_rep) {
-    sprintf("i = %2i ", i) %>% cat()
+    sprintf("i = %i ", i) %>% cat()
     
     str_c("./PMM", method, N, K, i, MAXITER, sep = " ") %>% system()
     
@@ -350,15 +398,27 @@ for (method in names(sim_res)) {
     bind_rows(sim_res[[method]], .id = "rep")
 }
 
+averaged_sim_res <- 
+  sim_res %>% 
+  map(.f = ~{
+    .x %>% 
+      group_by(iteration) %>% 
+      summarise(ELBO = mean(ELBO), .groups = "drop") %>% 
+      mutate(rep = "averaged")
+    }
+  ) %>% 
+  bind_rows(.id = "method")
+
 plot_comparison <- 
   sim_res %>% 
   bind_rows(.id = "method") %>% 
-  group_by(method, iteration) %>% 
-  summarise(ELBO = mean(ELBO), .groups = "drop") %>% 
+  bind_rows(averaged_sim_res) %>% 
   ggplot(aes(x = iteration, y = ELBO, color = method)) +
+  facet_wrap(. ~ rep, nrow = 3, ncol = 2) +
   geom_line(size = 1) +
   scale_x_continuous(trans = "log10") +
+  scale_y_continuous(limits = c(-15e+3,-4e+3)) +
   theme(aspect.ratio = 0.6,
         legend.position = "bottom")
 
-ggsave(filename = "comparison_result.png", plot = plot_comparison, width = 160, height = 100, units = "mm")
+ggsave(filename = "comparison_result.png", plot = plot_comparison, width = 320, height = 200, units = "mm")
