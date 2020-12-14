@@ -326,7 +326,7 @@ CGS_plot <-
   ggsave(filename = "CGS_result.png", width = 100, height = 150, units = "mm")
 
 
-# まとめ ------------------------------
+# 手法間の比較 ------------------------------
 method <- "data"
 N <- 1000
 K <- 8
