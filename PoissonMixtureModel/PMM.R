@@ -64,7 +64,7 @@ method <- "GS"
 gs_seed <- 1
 MAXITER <- 1e+2
 
-str_c("./PMM", method, N, K, gs_seed, MAXITER, sep = " ") %>% system()
+str_c("./PMM", method, N, K, gs_seed, as.integer(MAXITER), sep = " ") %>% system()
 
 GS <- list()
 
@@ -165,7 +165,7 @@ method <- "VI"
 vi_seed <- 1
 MAXITER <- 1e+2
 
-str_c("./PMM", method, N, K, vi_seed, MAXITER, sep = " ") %>% system()
+str_c("./PMM", method, N, K, vi_seed, as.integer(MAXITER), sep = " ") %>% system()
 
 VI <- list()
 
@@ -263,7 +263,7 @@ method <- "CGS"
 cgs_seed <- 1
 MAXITER <- 1e+2
 
-str_c("./PMM", method, N, K, cgs_seed, MAXITER, sep = " ") %>% system()
+str_c("./PMM", method, N, K, cgs_seed, as.integer(MAXITER), sep = " ") %>% system()
 
 CGS <- list()
 
@@ -376,14 +376,14 @@ col_types_list$CGS <- col_types
 N_rep <- 5
 N <- 1000
 K <- 8
-MAXITER <- 1e+4
+MAXITER <- 1e+04
 
 sim_res <- list(GS = list(), VI = list(), CGS = list())
 for (method in names(sim_res)) {
   for (i in 1:N_rep) {
     sprintf("i = %i ", i) %>% cat()
     
-    str_c("./PMM", method, N, K, i, MAXITER, sep = " ") %>% system()
+    str_c("./PMM", method, N, K, i, as.integer(MAXITER), sep = " ") %>% system()
     
     # read samples.csv
     sim_res[[method]][[i]] <- 
@@ -422,3 +422,4 @@ plot_comparison <-
         legend.position = "bottom")
 
 ggsave(filename = "comparison_result.png", plot = plot_comparison, width = 320, height = 200, units = "mm")
+
